@@ -1,0 +1,25 @@
+{
+  "name": "node-red-contrib-victron-modbus",
+  "version": "0.0.1",
+  "description": "Access the Victron equipment via the modbus",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "victron",
+    "modbus"
+  ],
+  "author": "Dirk-Jan Faber <dfaber@victronenergy.com>",
+  "license": "MIT",
+  "node-red": {
+    "nodes": {
+      "victron-modbus": "./src/nodes/victron-modbus.js"
+    }
+  },
+  "dependencies": {
+    "csv": "^6.2.5",
+    "node-red-contrib-modbus": "^5.25.0"
+  },
+  "devDependencies": {}
+}

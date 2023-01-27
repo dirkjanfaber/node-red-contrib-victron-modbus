@@ -1,0 +1,112 @@
+<script type="text/javascript">
+    var buildOption = function buildOption(service) {
+        return $('<option/>').val(service.value).text(service.label).data(service);
+    };
+
+    var populateSelect = function populateSelect(selector, services) {
+        selector[0].options.length = 0;
+        services.forEach(function (service) {
+            selector.append(buildOption(service));
+        });
+        selector.trigger('change');
+    };
+
+    function fetchSelect(label, selected) {
+        var selectRoot = (RED.settings.httpNodeRoot || RED.settings.httpAdminRoot || "").replace(/\/$/, "") + '/victron/'+label;
+        $.ajax(selectRoot, {
+            beforeSend: function(jqXHR) {
+                var auth_tokens = RED.settings.get("auth-tokens");
+                if (auth_tokens) {
+                    jqXHR.setRequestHeader("Authorization","Bearer "+auth_tokens.access_token);
+                }
+            }
+        })
+        .done(data => {
+            populateSelect($('#node-input-'+label), data)
+            $('#node-input-'+label).val(selected);
+        })
+    }
+
+    function myMBVNodeLabel(node) {
+        var altName = RED.nodes.node(node.server).name;
+
+        if (node.unitid) {
+            altName += ': '+node.unitid;
+        }
+
+        if (node.attribute) {
+            altName += ': '+node.attribute.label.split(':')[1];
+        }
+
+        return node.name || altName;
+    }
+
+    RED.nodes.registerType('victron-modbus',{
+        category: 'function',
+        color: '#4790d0',
+        defaults: {
+            name: {value:""},
+            unitid: {value: ""},
+            attribute: {value:""},
+            showWarnings: {value: true},
+            server: {type: 'modbus-client', required: true}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "victronenergy.svg",
+        label: function label() {
+            return myMBVNodeLabel(this);
+        },
+        oneditprepare: function() {
+            fetchSelect('attributes', this.attribute.value);
+        },
+        oneditsave: function() {
+            this.unitid = $('#node-input-unitid').val();
+            this.attribute = $('#node-input-attributes').find(':selected').data();
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="victron-modbus">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-globe"></i> <span data-i18n="modbus-contrib.label.server"></span> Server</label>
+        <input type="text" id="node-input-server">
+    </div>
+    <div class="form-row">
+        <label for="node-input-unitid"><i class="fa fa-tag"></i> Unit ID</label>
+        <input type="text" id="node-input-unitid">
+    </div>
+    <div class="form-row">
+        <label for="node-input-attributes"><i class="fa fa-tag"></i> Attribute</label>
+        <select id="node-input-attributes">
+        </select>
+    </div>
+    <div class="form-row">
+        <label style="min-width:190px" for="node-input-showWarnings"><i class="fa fa-th"></i> <span
+        data-i18n="modbus-contrib.label.showWarnings"></span></label>
+        <input type="checkbox" checked id="node-input-showWarnings" style="max-width:30px">
+    </div>    
+</script>
+
+<script type="text/html" data-help-name="victron-modbus">
+    <p>A node that utilizes the <tt>node-red-contrib-modbus</tt> code to access the Victron Energy nodes via modbus.</p>
+
+    <p>It uses the combination of the Unit ID and attribute to query the Venus device via modbus.</p>
+
+    <p>The output is parsed into readable output.</p>
+
+    <h3>Unit ID</h3>
+
+    <p>In order to retrieve the Unit ID, check the Remote Console: <i>Settings -> Services -> Modbus TCP -> Available services</i> .</p>
+
+    <h3>Attribute</h3>
+
+    <p>The dropdown shows a list of all attributes that a Venus device <i>can</i> expose via Modbus. Depending on the connected hardware these devices actually answer to the attributes.</p>
+</script>
+
+
+</script>
