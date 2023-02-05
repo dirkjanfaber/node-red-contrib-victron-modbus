@@ -7,6 +7,7 @@
     "test": "standard --fix"
   },
   "keywords": [
+    "node-red",
     "victron",
     "modbus"
   ],
@@ -15,7 +16,8 @@
   "node-red": {
     "nodes": {
       "victron-modbus": "./src/nodes/victron-modbus.js"
-    }
+    },
+    "version": ">=3.0.2"
   },
   "dependencies": {
     "csv": "^6.2.5",
