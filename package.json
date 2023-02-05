@@ -4,7 +4,7 @@
   "description": "Access the Victron equipment via the modbus",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "standard --fix"
   },
   "keywords": [
     "victron",
@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "csv": "^6.2.5",
-    "node-red-contrib-modbus": "^5.25.0"
-  },
-  "devDependencies": {}
+    "node-red-contrib-modbus": "^5.25.0",
+    "standard": "^17.0.0"
+  }
 }
