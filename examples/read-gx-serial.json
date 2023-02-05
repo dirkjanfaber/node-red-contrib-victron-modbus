@@ -1,0 +1,49 @@
+[
+    {
+        "id": "316fd98a1e0a24b5",
+        "type": "victron-modbus",
+        "z": "ceb97b2e191f3fc1",
+        "name": "settings / serial",
+        "unitid": "100",
+        "attribute": {
+            "label": "com.victronenergy.system:/Serial",
+            "value": "800:string:6:1:"
+        },
+        "showWarnings": true,
+        "server": "b9523bc4dac66add",
+        "x": 920,
+        "y": 200,
+        "wires": [
+            [
+                "bdf1205d97ce4009"
+            ]
+        ]
+    },
+    {
+        "id": "b9523bc4dac66add",
+        "type": "modbus-client",
+        "name": "localhost-502",
+        "clienttype": "tcp",
+        "bufferCommands": true,
+        "stateLogEnabled": false,
+        "queueLogEnabled": false,
+        "failureLogEnabled": true,
+        "tcpHost": "127.0.0.1",
+        "tcpPort": "502",
+        "tcpType": "DEFAULT",
+        "serialPort": "/dev/ttyUSB",
+        "serialType": "RTU-BUFFERD",
+        "serialBaudrate": "9600",
+        "serialDatabits": "8",
+        "serialStopbits": "1",
+        "serialParity": "none",
+        "serialConnectionDelay": "100",
+        "serialAsciiResponseStartDelimiter": "0x3A",
+        "unit_id": "1",
+        "commandDelay": "1",
+        "clientTimeout": "1000",
+        "reconnectOnTimeout": true,
+        "reconnectTimeout": "2000",
+        "parallelUnitIdsAllowed": true
+    }
+]

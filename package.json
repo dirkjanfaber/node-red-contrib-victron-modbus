@@ -19,9 +19,16 @@
     },
     "version": ">=3.0.2"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dirkjanfaber/node-red-contrib-victron-modbus"
+  },
   "dependencies": {
     "csv": "^6.2.5",
     "node-red-contrib-modbus": "^5.25.0",
     "standard": "^17.0.0"
+  },
+  "engines": {
+    "node": ">=14.17.4"
   }
 }
