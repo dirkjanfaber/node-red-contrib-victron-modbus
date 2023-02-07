@@ -1,8 +1,54 @@
 [
     {
-        "id": "316fd98a1e0a24b5",
+        "id": "2eeb9c0238a7900c",
+        "type": "debug",
+        "z": "a77482b1c4135623",
+        "name": "serial",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 690,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "35f22d15c2fa86b7",
+        "type": "inject",
+        "z": "a77482b1c4135623",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 230,
+        "y": 600,
+        "wires": [
+            [
+                "cda9e7e21da91e0b"
+            ]
+        ]
+    },
+    {
+        "id": "cda9e7e21da91e0b",
         "type": "victron-modbus",
-        "z": "ceb97b2e191f3fc1",
+        "z": "a77482b1c4135623",
         "name": "settings / serial",
         "unitid": "100",
         "attribute": {
@@ -11,11 +57,11 @@
         },
         "showWarnings": true,
         "server": "b9523bc4dac66add",
-        "x": 920,
-        "y": 200,
+        "x": 480,
+        "y": 600,
         "wires": [
             [
-                "bdf1205d97ce4009"
+                "2eeb9c0238a7900c"
             ]
         ]
     },
