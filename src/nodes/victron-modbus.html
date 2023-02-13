@@ -42,7 +42,7 @@
     }
 
     RED.nodes.registerType('victron-modbus',{
-        category: 'function',
+        category: 'Victron Energy',
         color: '#4790d0',
         defaults: {
             name: {value:""},
@@ -89,7 +89,7 @@
         <label style="min-width:190px" for="node-input-showWarnings"><i class="fa fa-th"></i> <span
         data-i18n="modbus-contrib.label.showWarnings"></span></label>
         <input type="checkbox" checked id="node-input-showWarnings" style="max-width:30px">
-    </div>    
+    </div>
 </script>
 
 <script type="text/html" data-help-name="victron-modbus">
@@ -106,7 +106,4 @@
     <h3>Attribute</h3>
 
     <p>The dropdown shows a list of all attributes that a Venus device <i>can</i> expose via Modbus. Depending on the connected hardware these devices actually answer to the attributes.</p>
-</script>
-
-
 </script>
