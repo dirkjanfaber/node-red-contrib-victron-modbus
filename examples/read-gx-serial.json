@@ -1,0 +1,95 @@
+[
+    {
+        "id": "2eeb9c0238a7900c",
+        "type": "debug",
+        "z": "a77482b1c4135623",
+        "name": "serial",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 690,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "35f22d15c2fa86b7",
+        "type": "inject",
+        "z": "a77482b1c4135623",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 230,
+        "y": 600,
+        "wires": [
+            [
+                "cda9e7e21da91e0b"
+            ]
+        ]
+    },
+    {
+        "id": "cda9e7e21da91e0b",
+        "type": "victron-modbus",
+        "z": "a77482b1c4135623",
+        "name": "settings / serial",
+        "unitid": "100",
+        "attribute": {
+            "label": "com.victronenergy.system:/Serial",
+            "value": "800:string:6:1:"
+        },
+        "showWarnings": true,
+        "server": "b9523bc4dac66add",
+        "x": 480,
+        "y": 600,
+        "wires": [
+            [
+                "2eeb9c0238a7900c"
+            ]
+        ]
+    },
+    {
+        "id": "b9523bc4dac66add",
+        "type": "modbus-client",
+        "name": "localhost-502",
+        "clienttype": "tcp",
+        "bufferCommands": true,
+        "stateLogEnabled": false,
+        "queueLogEnabled": false,
+        "failureLogEnabled": true,
+        "tcpHost": "127.0.0.1",
+        "tcpPort": "502",
+        "tcpType": "DEFAULT",
+        "serialPort": "/dev/ttyUSB",
+        "serialType": "RTU-BUFFERD",
+        "serialBaudrate": "9600",
+        "serialDatabits": "8",
+        "serialStopbits": "1",
+        "serialParity": "none",
+        "serialConnectionDelay": "100",
+        "serialAsciiResponseStartDelimiter": "0x3A",
+        "unit_id": "1",
+        "commandDelay": "1",
+        "clientTimeout": "1000",
+        "reconnectOnTimeout": true,
+        "reconnectTimeout": "2000",
+        "parallelUnitIdsAllowed": true
+    }
+]
