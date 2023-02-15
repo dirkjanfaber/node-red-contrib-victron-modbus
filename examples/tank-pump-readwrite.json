@@ -1,0 +1,192 @@
+[
+    {
+        "id": "87b6b13676730501",
+        "type": "inject",
+        "z": "cf72a6cf52556bb1",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 160,
+        "y": 80,
+        "wires": [
+            [
+                "fbc8d9ad986b5990"
+            ]
+        ]
+    },
+    {
+        "id": "4ebdf50270153c2f",
+        "type": "debug",
+        "z": "cf72a6cf52556bb1",
+        "name": "read modbus",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 630,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "fbc8d9ad986b5990",
+        "type": "victron-modbus",
+        "z": "cf72a6cf52556bb1",
+        "name": "Tank pump StartValue",
+        "unitid": "100",
+        "attribute": {
+            "label": "com.victronenergy.settings:/Settings/Pump0/StartValue",
+            "value": "4703:uint16:1:1:%:W"
+        },
+        "write": false,
+        "server": "ab43ba28c51c5ba7",
+        "x": 420,
+        "y": 80,
+        "wires": [
+            [
+                "4ebdf50270153c2f"
+            ]
+        ]
+    },
+    {
+        "id": "2ee0ca26a3302ab1",
+        "type": "inject",
+        "z": "cf72a6cf52556bb1",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "50",
+        "payloadType": "num",
+        "x": 170,
+        "y": 140,
+        "wires": [
+            [
+                "ade6589143a853da"
+            ]
+        ]
+    },
+    {
+        "id": "ade6589143a853da",
+        "type": "victron-modbus",
+        "z": "cf72a6cf52556bb1",
+        "name": "Tank pump StartValue",
+        "unitid": "100",
+        "attribute": {
+            "label": "com.victronenergy.settings:/Settings/Pump0/StartValue",
+            "value": "4703:uint16:1:1:%:W"
+        },
+        "write": true,
+        "server": "ab43ba28c51c5ba7",
+        "x": 420,
+        "y": 140,
+        "wires": [
+            [
+                "8a222a704a8359e8"
+            ]
+        ]
+    },
+    {
+        "id": "8a222a704a8359e8",
+        "type": "debug",
+        "z": "cf72a6cf52556bb1",
+        "name": "write modbus",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 630,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "e990d5e4f259cd07",
+        "type": "inject",
+        "z": "cf72a6cf52556bb1",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "60",
+        "payloadType": "num",
+        "x": 170,
+        "y": 180,
+        "wires": [
+            [
+                "ade6589143a853da"
+            ]
+        ]
+    },
+    {
+        "id": "ab43ba28c51c5ba7",
+        "type": "modbus-client",
+        "name": "Cerbo Desk FaberD",
+        "clienttype": "tcp",
+        "bufferCommands": true,
+        "stateLogEnabled": false,
+        "queueLogEnabled": false,
+        "failureLogEnabled": true,
+        "tcpHost": "10.230.1.53",
+        "tcpPort": "502",
+        "tcpType": "DEFAULT",
+        "serialPort": "/dev/ttyUSB",
+        "serialType": "RTU-BUFFERD",
+        "serialBaudrate": "9600",
+        "serialDatabits": "8",
+        "serialStopbits": "1",
+        "serialParity": "none",
+        "serialConnectionDelay": "100",
+        "serialAsciiResponseStartDelimiter": "0x3A",
+        "unit_id": "1",
+        "commandDelay": "1",
+        "clientTimeout": "1000",
+        "reconnectOnTimeout": true,
+        "reconnectTimeout": "2000",
+        "parallelUnitIdsAllowed": true,
+        "showWarnings": true,
+        "showLogs": true
+    }
+]
