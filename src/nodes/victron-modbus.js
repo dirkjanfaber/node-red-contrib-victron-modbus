@@ -10,7 +10,6 @@ module.exports = function (RED) {
 
   function VictronModbusNode (config) {
     RED.nodes.createNode(this, config)
-    this.showWarnings = config.showWarnings
     this.internalDebugLog = internalDebugLog
 
     const node = this
@@ -99,9 +98,7 @@ module.exports = function (RED) {
     node.isValidModbusMsg = function (msg) {
       let isValid = true
 
-      if (!(Number.isInteger(msg.payload.fc) &&
-                msg.payload.fc >= 1 &&
-                msg.payload.fc <= 4)) {
+      if (!(Number.isInteger(msg.payload.fc))) {
         node.error('FC Not Valid', msg)
         isValid &= false
       }
@@ -144,9 +141,9 @@ module.exports = function (RED) {
     }
 
     function verboseWarn (logMessage) {
-      if (RED.settings.verbose || node.showWarnings) {
+      // if (RED.settings.verbose) {
         node.warn('Victron-Modbus -> ' + logMessage)
-      }
+      // }
     }
 
     node.isReadyForInput = function () {
@@ -180,13 +177,63 @@ module.exports = function (RED) {
 
     node.initializeInputDelayTimer()
 
-    node.on('input', function (msg) {
-      msg.payload = {
-        fc: 3,
-        address: parseInt(config.attribute.value.split(':')[0]),
-        unitid: config.unitid,
-        quantity: parseInt(config.attribute.value.split(':')[2])
+    // From flex writer
+    node.onModbusWriteDone = function (resp, msg) {
+      if (node.showStatusActivities) {
+        mbBasics.setNodeStatusTo('writing done', node)
       }
+
+      node.warn(msg)
+      if (msg.enum) {
+        msg.payload = msg.enum[+msg.payload.value]
+      } else {
+        msg.payload = msg.payload.value;
+      }
+      
+      node.send(mbCore.buildMessage(node.bufferMessageList, msg.payload, resp, msg))
+      node.emit('modbusFlexWriteNodeDone')
+    }
+
+    node.errorProtocolMsg = function (err, msg) {
+      if (node.showErrors) {
+        mbBasics.logMsgError(node, err, msg)
+      }
+    }
+
+    node.onModbusWriteError = function (err, msg) {
+      node.internalDebugLog(err.message)
+      const origMsg = mbCore.getOriginalMessage(node.bufferMessageList, msg)
+      node.errorProtocolMsg(err, origMsg)
+      mbBasics.sendEmptyMsgOnFail(node, err, msg)
+      mbBasics.setModbusError(node, modbusClient, err, origMsg)
+      node.emit('modbusFlexWriteNodeError')
+    }
+
+
+    node.on('input', function (msg) {
+
+      if (config.write) {
+        msg.payload = {
+          value: msg.payload,
+          fc: 6
+        }
+
+        if (typeof(msg.payload.value) === 'string') {
+          var enums = {}
+          config.attribute.value.split(':')[4].split(';').forEach((e) => {
+            let b = e.split('=');
+            enums[b[1]] = b[0]
+          })
+          msg.payload.value = enums[msg.payload.value]
+        }
+      } else {
+        msg.payload = {
+          fc: 3
+        }
+      }
+      msg.payload.address = parseInt(config.attribute.value.split(':')[0])
+      msg.payload.unitid = config.unitid
+      msg.payload.quantity = parseInt(config.attribute.value.split(':')[2])
       msg.scalefactor = config.attribute.value.split(':')[3]
       msg.type = config.attribute.value.split(':')[1].replace(/\[[0-9]\]/, '')
       if (config.attribute.value.split(':')[4].includes('=')) {
@@ -221,7 +268,11 @@ module.exports = function (RED) {
           newMsg.scalefactor = msg.scalefactor
           newMsg.enum = msg.enum
           node.bufferMessageList.set(newMsg.messageId, mbBasics.buildNewMessage(node.keepMsgProperties, inputMsg, newMsg))
-          modbusClient.emit('readModbus', newMsg, node.onModbusReadDone, node.onModbusReadError)
+          if (config.write) {
+            modbusClient.emit('writeModbus', newMsg, node.onModbusWriteDone, node.onModbusWriteError)  
+          } else {
+            modbusClient.emit('readModbus', newMsg, node.onModbusReadDone, node.onModbusReadError)
+          }
         }
       } catch (err) {
         node.errorProtocolMsg(err, origMsgInput)
@@ -254,7 +305,7 @@ module.exports = function (RED) {
         const t = row[5].replace(/\[[0-9]\]/, '')
         attributes.push({
           label: row[0] + ':' + row[1],
-          value: row[4] + ':' + t + ':' + q + ':' + row[6] + ':' + row[3]
+          value: row[4] + ':' + t + ':' + q + ':' + row[6] + ':' + row[3] + ':' + row[7]
         })
       })
       .on('end', function () {

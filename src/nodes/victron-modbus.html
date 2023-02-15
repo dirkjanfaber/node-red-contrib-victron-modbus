@@ -48,7 +48,7 @@
             name: {value:""},
             unitid: {value: ""},
             attribute: {value:""},
-            showWarnings: {value: true},
+            write: {value: false},
             server: {type: 'modbus-client', required: true}
         },
         inputs:1,
@@ -85,10 +85,9 @@
         <select id="node-input-attributes">
         </select>
     </div>
-    <div class="form-row hidden">
-        <label style="min-width:190px" for="node-input-showWarnings"><i class="fa fa-th"></i> <span
-        data-i18n="modbus-contrib.label.showWarnings"></span></label>
-        <input type="checkbox" checked id="node-input-showWarnings" style="max-width:30px">
+    <div class="form-row">
+        <label style="min-width:190px" for="node-input-write"><i class="fa fa-th"></i> Write</label>
+        <input type="checkbox" checked id="node-input-write" style="max-width:30px">
     </div>
 </script>
 
@@ -106,4 +105,8 @@
     <h3>Attribute</h3>
 
     <p>The dropdown shows a list of all attributes that a Venus device <i>can</i> expose via Modbus. Depending on the connected hardware these devices actually answer to the attributes.</p>
+
+    <h3>Writing</h3>
+
+    <p>If the <em>write</em> checkbox has been set, the input is treated as the value to write.</p>
 </script>
