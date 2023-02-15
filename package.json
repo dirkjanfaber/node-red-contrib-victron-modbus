@@ -29,6 +29,9 @@
     "standard": "^17.0.0"
   },
   "engines": {
-    "node": ">=14.17.4"
+    "node": ">=14"
+  },
+  "bugs": {
+    "url": "https://github.com/dirkjanfaber/node-red-contrib-victron-modbus/issues/"
   }
 }
