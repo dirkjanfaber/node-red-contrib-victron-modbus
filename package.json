@@ -21,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dirkjanfaber/node-red-contrib-victron-modbus"
+    "url": "git+https://github.com/dirkjanfaber/node-red-contrib-victron-modbus.git"
   },
   "dependencies": {
     "csv": "^6.2.5",
@@ -32,6 +32,6 @@
     "node": ">=14"
   },
   "bugs": {
-    "url": "https://github.com/dirkjanfaber/node-red-contrib-victron-modbus/issues/"
+    "url": "https://github.com/dirkjanfaber/node-red-contrib-victron-modbus/issues"
   }
 }
