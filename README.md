@@ -14,10 +14,14 @@ Also, make sure that you enter the correct Unit ID to match the wanted attribute
 to obtain the attribute is to check the console under _Settings -> Services ->
 Modbus TCP -> Available services_.
 
-## Installation
+# Installation
 
 You can install the node from the palette manager, but be warned that, if you
 don't have `node-red-contrib-modbus` installed yet, you will need to restart
 Node-RED first. See [here](https://github.com/node-red/node-red/issues/569) for
 more details.
 
+# About
+
+The code relies on [node-red-contrib-modbus](https://github.com/biancoroyal/node-red-contrib-modbus)
+and uses part of that code to function.
