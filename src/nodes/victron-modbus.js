@@ -141,9 +141,7 @@ module.exports = function (RED) {
     }
 
     function verboseWarn (logMessage) {
-      // if (RED.settings.verbose) {
-        node.warn('Victron-Modbus -> ' + logMessage)
-      // }
+      node.warn('Victron-Modbus -> ' + logMessage)
     }
 
     node.isReadyForInput = function () {
@@ -187,9 +185,9 @@ module.exports = function (RED) {
       if (msg.enum) {
         msg.payload = msg.enum[+msg.payload.value]
       } else {
-        msg.payload = msg.payload.value;
+        msg.payload = msg.payload.value
       }
-      
+
       node.send(mbCore.buildMessage(node.bufferMessageList, msg.payload, resp, msg))
       node.emit('modbusFlexWriteNodeDone')
     }
@@ -209,19 +207,17 @@ module.exports = function (RED) {
       node.emit('modbusFlexWriteNodeError')
     }
 
-
     node.on('input', function (msg) {
-
       if (config.write) {
         msg.payload = {
           value: msg.payload,
           fc: 6
         }
 
-        if (typeof(msg.payload.value) === 'string') {
-          var enums = {}
+        if (typeof (msg.payload.value) === 'string') {
+          const enums = {}
           config.attribute.value.split(':')[4].split(';').forEach((e) => {
-            let b = e.split('=');
+            const b = e.split('=')
             enums[b[1]] = b[0]
           })
           msg.payload.value = enums[msg.payload.value]
@@ -269,7 +265,7 @@ module.exports = function (RED) {
           newMsg.enum = msg.enum
           node.bufferMessageList.set(newMsg.messageId, mbBasics.buildNewMessage(node.keepMsgProperties, inputMsg, newMsg))
           if (config.write) {
-            modbusClient.emit('writeModbus', newMsg, node.onModbusWriteDone, node.onModbusWriteError)  
+            modbusClient.emit('writeModbus', newMsg, node.onModbusWriteDone, node.onModbusWriteError)
           } else {
             modbusClient.emit('readModbus', newMsg, node.onModbusReadDone, node.onModbusReadError)
           }

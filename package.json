@@ -24,7 +24,7 @@
     "url": "git+https://github.com/dirkjanfaber/node-red-contrib-victron-modbus.git"
   },
   "dependencies": {
-    "csv": "^6.2.5",
+    "csv": "^6.2.8",
     "node-red-contrib-modbus": "^5.25.0",
     "standard": "^17.0.0"
   },

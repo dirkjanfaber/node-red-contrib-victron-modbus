@@ -1,5 +1,7 @@
 # node-red-contrib-victron-modbus
 
+![Tankpump flow](./doc/img/tankpump-flow.png)
+
 Leaning on the shoulders of giants. So in this case the code of the flex-getter
 module of
 [node-red-contrib-modbus](https://github.com/biancoroyal/node-red-contrib-modbus)
@@ -8,6 +10,9 @@ is used to create a Victron specific modbus client.
 It uses the `/opt/victronenergy/dbus-modbustcp/attributes.csv` file for making the
 dropdown in the edit panel to select the value to read. Al you need to determine
 before you can use the node, is to get the used Unit ID.
+
+
+![Edit panel](./doc/img/editpanel.png)
 
 It will show _all_ available attributes, not just the ones that are actually available on the system.
 Also, make sure that you enter the correct Unit ID to match the wanted attribute. The easiest way

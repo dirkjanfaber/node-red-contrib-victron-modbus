@@ -28,7 +28,7 @@
     }
 
     function myMBVNodeLabel(node) {
-        var altName = RED.nodes.node(node.server).name;
+        var altName = RED.nodes.node(node.server).name || 'Modbus';
 
         if (node.unitid) {
             altName += ': '+node.unitid;
