@@ -11,6 +11,12 @@ It uses the `/opt/victronenergy/dbus-modbustcp/attributes.csv` file for making t
 dropdown in the edit panel to select the value to read. Al you need to determine
 before you can use the node, is to get the used Unit ID.
 
+If you don't have that, you can also download it from [here](https://github.com/victronenergy/dbus_modbustcp/blob/master/attributes.csv) and store it in your Node-RED userDir (typically `~/.node-red`). The following `curl` command does
+just that:   
+```
+curl -o ~/.node-red/attributes.csv https://raw.githubusercontent.com/victronenergy/dbus_modbustcp/master/attributes.csv
+```
+
 
 ![Edit panel](./doc/img/editpanel.png)
 

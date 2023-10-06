@@ -291,7 +291,25 @@ module.exports = function (RED) {
 
   RED.httpNode.get('/victron/attributes', RED.auth.needsPermission('victron-modbus.read'), (req, res) => {
     const attributes = []
-    fs.createReadStream('/opt/victronenergy/dbus-modbustcp/attributes.csv')
+    const possibleFilesPaths = [
+      '/opt/victronenergy/dbus-modbustcp/attributes.csv',
+      RED.settings.userDir + '/attributes.csv'
+    ]
+    let attributesFile = null;
+
+    for (const filePath of possibleFilesPaths) {
+      if (fs.existsSync(filePath)) {
+        attributesFile = filePath
+        break
+      }
+    }
+
+    if (! attributesFile) {
+       console.log('no attributes file found')
+       return
+    }
+
+    fs.createReadStream(attributesFile)
       .pipe(parse({ delimiter: ',', from_line: 1, relax_column_count: true }))
       .on('data', function (row) {
         let q = 1
