@@ -295,7 +295,7 @@ module.exports = function (RED) {
       '/opt/victronenergy/dbus-modbustcp/attributes.csv',
       RED.settings.userDir + '/attributes.csv'
     ]
-    let attributesFile = null;
+    let attributesFile = null
 
     for (const filePath of possibleFilesPaths) {
       if (fs.existsSync(filePath)) {
@@ -304,43 +304,43 @@ module.exports = function (RED) {
       }
     }
 
-    if (! attributesFile) {
-       console.log('no attributes file found')
-       return
+    if (!attributesFile) {
+      console.log('no attributes file found')
+      return
     }
 
     const handleError = (error) => {
-      console.error('Error:', error);
-    };
+      console.error('Error:', error)
+    }
 
     const handleRow = (row) => {
       try {
-        let q = 1;
+        let q = 1
         if (row[5] && row[5].match(/string/)) {
-          q = parseInt(row[5].replace(/\D+/g, '')) || 1;
+          q = parseInt(row[5].replace(/\D+/g, '')) || 1
         }
-        const t = row[5] ? row[5].replace(/\[[0-9]\]/, '') : '';
+        const t = row[5] ? row[5].replace(/\[[0-9]\]/, '') : ''
         attributes.push({
           label: row[0] + ':' + row[1],
-          value: row[4] + ':' + t + ':' + q + ':' + row[6] + ':' + row[3] + ':' + row[7],
-        });
+          value: row[4] + ':' + t + ':' + q + ':' + row[6] + ':' + row[3] + ':' + row[7]
+        })
       } catch (error) {
-        handleError(error);
+        handleError(error)
       }
-    };
+    }
 
     const handleEnd = () => {
-      attributes.sort((a, b) => a.label.localeCompare(b.label));
-      res.setHeader('Content-Type', 'application/json');
-      res.send(attributes);
-    };
+      attributes.sort((a, b) => a.label.localeCompare(b.label))
+      res.setHeader('Content-Type', 'application/json')
+      res.send(attributes)
+    }
 
-    const fileStream = fs.createReadStream(attributesFile);
-    fileStream.on('error', handleError);
+    const fileStream = fs.createReadStream(attributesFile)
+    fileStream.on('error', handleError)
 
     fileStream
       .pipe(parse({ delimiter: ',', from_line: 1, relax_column_count: true }))
       .on('data', handleRow)
-      .on('end', handleEnd);
+      .on('end', handleEnd)
   })
 }
