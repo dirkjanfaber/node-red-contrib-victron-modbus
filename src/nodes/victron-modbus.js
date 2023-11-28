@@ -309,27 +309,38 @@ module.exports = function (RED) {
        return
     }
 
-    fs.createReadStream(attributesFile)
-      .pipe(parse({ delimiter: ',', from_line: 1, relax_column_count: true }))
-      .on('data', function (row) {
-        let q = 1
-        if (row[5].match(/string/)) {
-          q = parseInt(row[5].replace(/\D+/g, ''))
+    const handleError = (error) => {
+      console.error('Error:', error);
+    };
+
+    const handleRow = (row) => {
+      try {
+        let q = 1;
+        if (row[5] && row[5].match(/string/)) {
+          q = parseInt(row[5].replace(/\D+/g, '')) || 1;
         }
-        const t = row[5].replace(/\[[0-9]\]/, '')
+        const t = row[5] ? row[5].replace(/\[[0-9]\]/, '') : '';
         attributes.push({
           label: row[0] + ':' + row[1],
-          value: row[4] + ':' + t + ':' + q + ':' + row[6] + ':' + row[3] + ':' + row[7]
-        })
-      })
-      .on('end', function () {
-        attributes.sort((a, b) => {
-          if (a.label < b.label) { return -1 }
-          if (a.label > b.label) { return 1 }
-          return 0
-        })
-        res.setHeader('Content-Type', 'application/json')
-        return res.send(attributes)
-      })
+          value: row[4] + ':' + t + ':' + q + ':' + row[6] + ':' + row[3] + ':' + row[7],
+        });
+      } catch (error) {
+        handleError(error);
+      }
+    };
+
+    const handleEnd = () => {
+      attributes.sort((a, b) => a.label.localeCompare(b.label));
+      res.setHeader('Content-Type', 'application/json');
+      res.send(attributes);
+    };
+
+    const fileStream = fs.createReadStream(attributesFile);
+    fileStream.on('error', handleError);
+
+    fileStream
+      .pipe(parse({ delimiter: ',', from_line: 1, relax_column_count: true }))
+      .on('data', handleRow)
+      .on('end', handleEnd);
   })
 }
