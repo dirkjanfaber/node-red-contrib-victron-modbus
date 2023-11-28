@@ -2,7 +2,7 @@
     {
         "id": "2eeb9c0238a7900c",
         "type": "debug",
-        "z": "a77482b1c4135623",
+        "z": "2cfaf18cf249149c",
         "name": "serial",
         "active": true,
         "tosidebar": true,
@@ -12,14 +12,14 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 690,
-        "y": 600,
+        "x": 870,
+        "y": 520,
         "wires": []
     },
     {
         "id": "35f22d15c2fa86b7",
         "type": "inject",
-        "z": "a77482b1c4135623",
+        "z": "2cfaf18cf249149c",
         "name": "",
         "props": [
             {
@@ -37,8 +37,8 @@
         "topic": "",
         "payload": "",
         "payloadType": "date",
-        "x": 230,
-        "y": 600,
+        "x": 410,
+        "y": 520,
         "wires": [
             [
                 "cda9e7e21da91e0b"
@@ -48,17 +48,17 @@
     {
         "id": "cda9e7e21da91e0b",
         "type": "victron-modbus",
-        "z": "a77482b1c4135623",
+        "z": "2cfaf18cf249149c",
         "name": "settings / serial",
         "unitid": "100",
         "attribute": {
             "label": "com.victronenergy.system:/Serial",
-            "value": "800:string:6:1:"
+            "value": "800:string:6:1::R"
         },
-        "showWarnings": true,
-        "server": "b9523bc4dac66add",
-        "x": 480,
-        "y": 600,
+        "write": false,
+        "server": "9857d07cac1dd3a5",
+        "x": 660,
+        "y": 520,
         "wires": [
             [
                 "2eeb9c0238a7900c"
@@ -66,15 +66,15 @@
         ]
     },
     {
-        "id": "b9523bc4dac66add",
+        "id": "9857d07cac1dd3a5",
         "type": "modbus-client",
-        "name": "localhost-502",
+        "name": "",
         "clienttype": "tcp",
         "bufferCommands": true,
         "stateLogEnabled": false,
         "queueLogEnabled": false,
         "failureLogEnabled": true,
-        "tcpHost": "127.0.0.1",
+        "tcpHost": "venus.local",
         "tcpPort": "502",
         "tcpType": "DEFAULT",
         "serialPort": "/dev/ttyUSB",
@@ -90,6 +90,8 @@
         "clientTimeout": "1000",
         "reconnectOnTimeout": true,
         "reconnectTimeout": "2000",
-        "parallelUnitIdsAllowed": true
+        "parallelUnitIdsAllowed": true,
+        "showWarnings": true,
+        "showLogs": true
     }
 ]
