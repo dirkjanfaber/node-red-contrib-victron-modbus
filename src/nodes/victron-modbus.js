@@ -42,6 +42,14 @@ module.exports = function (RED) {
           msg.payload = msg.payload[0]
           break
         }
+        case 'int32': {
+          msg.payload = msg.payload[1]
+          break
+        }
+        case 'uint32': {
+          msg.payload = msg.payload[1]
+          break
+        }
         case 'string': {
           let b = ''
           msg.payload.forEach(x => {
@@ -318,6 +326,9 @@ module.exports = function (RED) {
         let q = 1
         if (row[5] && row[5].match(/string/)) {
           q = parseInt(row[5].replace(/\D+/g, '')) || 1
+        }
+        if (row[5] && row[5].match(/int32/)) {
+          q = 2
         }
         const t = row[5] ? row[5].replace(/\[[0-9]\]/, '') : ''
         attributes.push({
