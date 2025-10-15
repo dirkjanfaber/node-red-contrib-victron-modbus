@@ -1,70 +1,109 @@
 <script type="text/javascript">
-    var buildOption = function buildOption(service) {
-        return $('<option/>').val(service.value).text(service.label).data(service);
-    };
-
-    var populateSelect = function populateSelect(selector, services) {
-        selector[0].options.length = 0;
-        services.forEach(function (service) {
-            selector.append(buildOption(service));
-        });
-        selector.trigger('change');
-    };
-
-    function fetchSelect(label, selected) {
-        var selectRoot = (RED.settings.httpNodeRoot || RED.settings.httpAdminRoot || "").replace(/\/$/, "") + '/victron/'+label;
-        $.ajax(selectRoot, {
-            beforeSend: function(jqXHR) {
-                var auth_tokens = RED.settings.get("auth-tokens");
-                if (auth_tokens) {
-                    jqXHR.setRequestHeader("Authorization","Bearer "+auth_tokens.access_token);
-                }
+(function() {
+    // Namespace all functions to avoid global conflicts
+    var VictronModbus = {
+        buildOption: function(service) {
+            if (!service) {
+                console.warn('buildOption called with undefined/null service');
+                return $('<option/>');
             }
-        })
-        .done(data => {
-            populateSelect($('#node-input-'+label), data)
-            $('#node-input-'+label).val(selected);
-        })
-    }
+            return $('<option/>').val(service.value).text(service.label).data(service);
+        },
 
-    function myMBVNodeLabel(node) {
-        var altName = RED.nodes.node(node.server).name || 'Modbus';
+        populateSelect: function(selector, services) {
+            if (!selector || selector.length === 0) {
+                console.error('Invalid selector');
+                return;
+            }
+            if (!services || !Array.isArray(services)) {
+                console.error('Invalid services data:', services);
+                return;
+            }
 
-        if (node.unitid) {
-            altName += ': '+node.unitid;
+            selector.empty();
+            for (var i = 0; i < services.length; i++) {
+                selector.append(VictronModbus.buildOption(services[i]));
+            }
+            selector.trigger('change');
+        },
+
+        fetchSelect: function(label, selected) {
+            var selectRoot = (RED.settings.httpNodeRoot || RED.settings.httpAdminRoot || "").replace(/\/$/, "") + '/victron/' + label;
+            $.ajax(selectRoot, {
+                beforeSend: function(jqXHR) {
+                    var auth_tokens = RED.settings.get("auth-tokens");
+                    if (auth_tokens) {
+                        jqXHR.setRequestHeader("Authorization","Bearer " + auth_tokens.access_token);
+                    }
+                }
+            })
+            .done(function(data) {
+                if (data && Array.isArray(data)) {
+                    VictronModbus.populateSelect($('#node-input-' + label), data);
+                    if (selected) {
+                        $('#node-input-' + label).val(selected);
+                    }
+                } else {
+                    console.error('Data is not an array:', data);
+                    RED.notify('Attributes data format is invalid', 'error');
+                }
+            })
+            .fail(function(err) {
+                console.error('Failed to fetch attributes:', err);
+                RED.notify('Failed to load attributes. Check console for details.', 'error');
+            });
+        },
+
+        getNodeLabel: function(node) {
+            var altName = RED.nodes.node(node.server) ? (RED.nodes.node(node.server).name || 'Modbus') : 'Modbus';
+
+            if (node.unitid) {
+                altName += ': ' + node.unitid;
+            }
+
+            if (node.attribute && typeof node.attribute === 'object' && node.attribute.label) {
+                altName += ': ' + node.attribute.label.split(':')[1];
+            }
+
+            return node.name || altName;
         }
+    };
 
-        if (node.attribute) {
-            altName += ': '+node.attribute.label.split(':')[1];
-        }
-
-        return node.name || altName;
-    }
-
-    RED.nodes.registerType('victron-modbus',{
+    RED.nodes.registerType('victron-modbus', {
         category: 'Victron Energy',
         color: '#4790d0',
         defaults: {
-            name: {value:""},
+            name: {value: ""},
             unitid: {value: ""},
-            attribute: {value:""},
+            attribute: {value: ""},
+            attributesPath: {value: ""},  // Custom path for attributes.csv
             write: {value: false},
             server: {type: 'modbus-client', required: true}
         },
-        inputs:1,
-        outputs:1,
+        inputs: 1,
+        outputs: 1,
         icon: "victronenergy.svg",
-        label: function label() {
-            return myMBVNodeLabel(this);
+        label: function() {
+            return VictronModbus.getNodeLabel(this);
         },
         oneditprepare: function() {
-            fetchSelect('attributes', this.attribute.value);
+            var selectedValue = '';
+            if (this.attribute) {
+                if (typeof this.attribute === 'object' && this.attribute.value) {
+                    selectedValue = this.attribute.value;
+                } else if (typeof this.attribute === 'string') {
+                    selectedValue = this.attribute;
+                }
+            }
+            VictronModbus.fetchSelect('attributes', selectedValue);
         },
         oneditsave: function() {
             this.unitid = $('#node-input-unitid').val();
             this.attribute = $('#node-input-attributes').find(':selected').data();
+            this.attributesPath = $('#node-input-attributesPath').val();
         }
     });
+})();
 </script>
 
 <script type="text/html" data-template-name="victron-modbus">
@@ -86,32 +125,136 @@
         </select>
     </div>
     <div class="form-row">
+        <label for="node-input-attributesPath"><i class="fa fa-file-text-o"></i> Attributes File</label>
+        <input type="text" id="node-input-attributesPath" placeholder="Optional: custom path to attributes.csv">
+    </div>
+    <div class="form-row">
         <label style="min-width:190px" for="node-input-write"><i class="fa fa-th"></i> Write</label>
         <input type="checkbox" checked id="node-input-write" style="max-width:30px">
     </div>
 </script>
 
-<script type="text/html" data-help-name="victron-modbus">
-    <p>A node that utilizes the <tt>node-red-contrib-modbus</tt> code to access the Victron Energy nodes via modbus.</p>
+<script type="text/markdown" data-help-name="victron-modbus">
+# Victron Modbus Node
 
-    <p>It uses the combination of the Unit ID and attribute to query the Venus device via modbus.</p>
+A Node-RED node that utilizes the `node-red-contrib-modbus` code to access Victron Energy devices via Modbus.
 
-    <p>The <tt>attributes.csv</tt> is used for showing the dropdown. On a Venus GX system, this file 
-        is typically located here: <tt>/opt/victronenergy/dbus-modbustcp/attributes.csv</tt>. If you
-    are running this node on another system, you can put this file in your <tt>~/.node-red/</tt>
-directory. The file can be downloaded from <a href="https://github.com/victronenergy/dbus_modbustcp/blob/master/attributes.csv">here</a>.</p>
+## Overview
 
-    <p>The output is parsed into readable output.</p>
+This node uses the combination of the **Unit ID** and **attribute** to query the Venus device via Modbus.
 
-    <h3>Unit ID</h3>
+## Attributes File
 
-    <p>In order to retrieve the Unit ID, check the Remote Console: <i>Settings -> Services -> Modbus TCP -> Available services</i> .</p>
+The `attributes.csv` file is used for populating the attribute dropdown in the editor. The node searches for this file in the following locations (in order):
 
-    <h3>Attribute</h3>
+1. **Custom path** specified in node configuration
+2. **Environment variable** `VICTRON_ATTRIBUTES_PATH`
+3. `/opt/victronenergy/dbus-modbustcp/attributes.csv` (Venus OS)
+4. `~/.node-red/attributes.csv` (Node-RED user directory)
+5. `/config/node-red/attributes.csv` (Home Assistant)
+6. `/share/node-red/attributes.csv` (Home Assistant)
+7. Other common locations
 
-    <p>The dropdown shows a list of all attributes that a Venus device <i>can</i> expose via Modbus. Depending on the connected hardware these devices actually answer to the attributes.</p>
+### Downloading attributes.csv
 
-    <h3>Writing</h3>
+The file can be downloaded from [GitHub](https://github.com/victronenergy/dbus_modbustcp/blob/master/attributes.csv).
 
-    <p>If the <em>write</em> checkbox has been set, the input is treated as the value to write.</p>
+```bash
+# Standard Node-RED installation
+curl -o ~/.node-red/attributes.csv https://raw.githubusercontent.com/victronenergy/dbus_modbustcp/master/attributes.csv
+
+# Home Assistant add-on
+curl -o /config/node-red/attributes.csv https://raw.githubusercontent.com/victronenergy/dbus_modbustcp/master/attributes.csv
+```
+
+### Custom Path
+
+If your attributes.csv is in a non-standard location, you can specify a custom path in the node configuration under **Attributes File**.
+
+### Environment Variable
+
+Alternatively, set the environment variable before starting Node-RED:
+
+```bash
+export VICTRON_ATTRIBUTES_PATH=/path/to/your/attributes.csv
+```
+
+## Configuration
+
+### Unit ID
+
+To retrieve the Unit ID, check the Remote Console:
+
+**Settings → Services → Modbus TCP → Available services**
+
+The Unit ID can be set in the node configuration or dynamically via `msg.unitid`.
+
+### Attribute
+
+The dropdown shows a list of all attributes that a Venus device *can* expose via Modbus. Depending on the connected hardware, these devices actually answer to the attributes.
+
+The attribute can be set in the node configuration or dynamically via `msg.attribute`.
+
+### Writing
+
+If the **Write** checkbox has been set, the input is treated as the value to write to the specified attribute.
+
+## Dynamic Configuration
+
+You can override the configured Unit ID and Attribute at runtime using message properties:
+
+### msg.unitid
+
+Override the Unit ID for this specific request:
+
+```javascript
+msg.unitid = "100";
+msg.payload = true;  // trigger read/write
+return msg;
+```
+
+### msg.attribute
+
+Override the attribute for this specific request. The attribute must be in the same format as the configuration:
+
+```javascript
+msg.attribute = {
+    label: "com.victronenergy.battery:/Dc/0/Voltage",
+    value: "259:uint16:1:10:V DC:R"
+};
+msg.payload = true;  // trigger read
+return msg;
+```
+
+**Note:** If both `msg.unitid` and `msg.attribute` are provided, they will be used instead of the node's configuration. If only one is provided, it will override just that setting while using the configured value for the other.
+
+## Examples
+
+### Dynamic Unit ID
+```javascript
+// Read voltage from different battery units
+msg.unitid = "225";  // Battery 1
+return msg;
+```
+
+### Dynamic Attribute
+```javascript
+// Switch between reading different attributes
+msg.attribute = {
+    value: "840:int16:1:10:A:R"  // Current instead of Voltage
+};
+return msg;
+```
+
+### Fully Dynamic Query
+```javascript
+// Query any unit and attribute dynamically
+msg.unitid = flow.get("current_unit");
+msg.attribute = flow.get("current_attribute");
+return msg;
+```
+
+## Output
+
+The output is automatically parsed into readable format based on the attribute type (integer, string, enum, etc.). The node status displays the last read or written value for easy monitoring.
 </script>

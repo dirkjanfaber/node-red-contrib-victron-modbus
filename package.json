@@ -1,10 +1,13 @@
 {
   "name": "node-red-contrib-victron-modbus",
-  "version": "0.1.5",
+  "version": "1.0.0",
   "description": "Access the Victron equipment via the modbus",
   "main": "index.js",
   "scripts": {
-    "test": "standard --fix"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "standard --fix"
   },
   "keywords": [
     "node-red",
@@ -24,8 +27,11 @@
     "url": "git+https://github.com/dirkjanfaber/node-red-contrib-victron-modbus.git"
   },
   "dependencies": {
-    "csv": "^6.3.5",
-    "node-red-contrib-modbus": "^5.27.2",
+    "csv-parse": "^5.3.6",
+    "node-red-contrib-modbus": "^5.27.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
     "standard": "^17.1.0"
   },
   "engines": {

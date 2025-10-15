@@ -1,5 +1,7 @@
-const fs = require('fs')
-const { parse } = require('csv-parse')
+const path = require('path')
+const csvParser = require(path.join(__dirname, '../lib/csv-parser'))
+const dataTransformer = require(path.join(__dirname, '../lib/data-transformer'))
+const attributeParser = require(path.join(__dirname, '../lib/attribute-parser'))
 
 module.exports = function (RED) {
   'use strict'
@@ -32,46 +34,50 @@ module.exports = function (RED) {
       }
 
       const response = mbIOCore.buildMessageWithIO(node, resp.data, resp, msg)
-      // Now parse the response for readable output
-      switch (msg.type) {
-        case 'int16': {
-          msg.payload = msg.payload[0]
-          break
+
+      // Transform the response using the new data-transformer module
+      try {
+        msg.payload = dataTransformer.transformModbusData(msg.payload, msg.type)
+
+        // Apply scale factor for non-string types
+        if (msg.type !== 'string' && msg.scalefactor) {
+          msg.payload = dataTransformer.applyScaleFactor(msg.payload, msg.scalefactor)
         }
-        case 'uint16': {
-          msg.payload = msg.payload[0]
-          break
+
+        // Apply enum mapping if present
+        if (msg.enum) {
+          msg.payload = dataTransformer.applyEnumMapping(msg.payload, msg.enum)
         }
-        case 'int32': {
-          msg.payload = msg.payload[1]
-          break
-        }
-        case 'uint32': {
-          msg.payload = msg.payload[1]
-          break
-        }
-        case 'string': {
-          let b = ''
-          msg.payload.forEach(x => {
-            b += String.fromCharCode(x >> 8)
-            b += String.fromCharCode(x & 0xff)
-          })
-          msg.payload = b
-          break
-        }
-        default: {
-          node.warn('unknown type ' + msg.type)
-        }
-      }
-      if (msg.type !== 'string' && msg.scalefactor) {
-        msg.payload = msg.payload / msg.scalefactor
-      }
-      if (msg.enum) {
-        msg.payload = msg.enum[msg.payload]
+
+        // Update node status with the parsed value
+        node.updateStatusWithValue(msg.payload, 'read')
+      } catch (err) {
+        node.warn('Error transforming data: ' + err.message)
+        node.internalDebugLog('Transform error:', err)
       }
 
       node.send(response)
       node.emit('modbusVictronNodeDone')
+    }
+
+    node.onModbusWriteDone = function (resp, msg) {
+      if (node.showStatusActivities) {
+        mbBasics.setNodeStatusTo('writing done', node)
+      }
+
+      node.warn(msg)
+      let writtenValue
+      if (msg.enum) {
+        writtenValue = msg.enum[+msg.payload.value]
+      } else {
+        writtenValue = msg.payload.value
+      }
+
+      // Update node status with the written value
+      node.updateStatusWithValue(writtenValue, 'write')
+
+      node.send(mbCore.buildMessage(node.bufferMessageList, writtenValue, resp, msg))
+      node.emit('modbusFlexWriteNodeDone')
     }
 
     node.errorProtocolMsg = function (err, msg) {
@@ -90,6 +96,15 @@ module.exports = function (RED) {
       node.emit('modbusVictronNodeError')
     }
 
+    node.onModbusWriteError = function (err, msg) {
+      node.internalDebugLog(err.message)
+      const origMsg = mbCore.getOriginalMessage(node.bufferMessageList, msg)
+      node.errorProtocolMsg(err, origMsg)
+      mbBasics.sendEmptyMsgOnFail(node, err, msg)
+      mbBasics.setModbusError(node, modbusClient, err, origMsg)
+      node.emit('modbusFlexWriteNodeError')
+    }
+
     node.prepareMsg = function (msg) {
       if (typeof msg.payload === 'string') {
         msg.payload = JSON.parse(msg.payload)
@@ -104,30 +119,8 @@ module.exports = function (RED) {
     }
 
     node.isValidModbusMsg = function (msg) {
-      let isValid = true
-
-      if (!(Number.isInteger(msg.payload.fc))) {
-        node.error('FC Not Valid', msg)
-        isValid &= false
-      }
-
-      if (isValid &&
-              !(Number.isInteger(msg.payload.address) &&
-              msg.payload.address >= 0 &&
-              msg.payload.address <= 65535)) {
-        node.error('Address Not Valid', msg)
-        isValid &= false
-      }
-
-      if (isValid &&
-              !(Number.isInteger(msg.payload.quantity) &&
-              msg.payload.quantity >= 1 &&
-              msg.payload.quantity <= 65535)) {
-        node.error('Quantity Not Valid', msg)
-        isValid &= false
-      }
-
-      return isValid
+      // Use the new attribute-parser validation
+      return attributeParser.isValidModbusPayload(msg.payload)
     }
 
     node.buildNewMessageObject = function (node, msg) {
@@ -152,6 +145,27 @@ module.exports = function (RED) {
       node.warn('Victron-Modbus -> ' + logMessage)
     }
 
+    node.updateStatusWithValue = function (value, operation) {
+      // Format the value for display
+      let displayValue = value
+      if (typeof value === 'number') {
+        // Round to 2 decimal places for cleaner display
+        displayValue = Math.round(value * 100) / 100
+      } else if (typeof value === 'string') {
+        // Truncate long strings
+        displayValue = value.length > 20 ? value.substring(0, 20) + '...' : value
+      }
+
+      const statusColor = operation === 'read' ? 'green' : 'blue'
+      const statusShape = operation === 'read' ? 'dot' : 'ring'
+
+      node.status({
+        fill: statusColor,
+        shape: statusShape,
+        text: `${operation}: ${displayValue}`
+      })
+    }
+
     node.isReadyForInput = function () {
       return (modbusClient.client && modbusClient.isActive() && node.delayOccured)
     }
@@ -170,86 +184,65 @@ module.exports = function (RED) {
     }
 
     node.initializeInputDelayTimer = function () {
-      node.resetInputDelayTimer()
-      if (node.delayOnStart) {
-        verboseWarn('initialize input delay timer node ' + node.id)
-        node.inputDelayTimer = setTimeout(() => {
-          node.delayOccured = true
-        }, node.INPUT_TIMEOUT_MILLISECONDS * node.startDelayTime)
-      } else {
+      node.delayOccured = false
+      node.inputDelayTimer = setTimeout(function () {
         node.delayOccured = true
-      }
+      }, node.INPUT_TIMEOUT_MILLISECONDS)
     }
 
     node.initializeInputDelayTimer()
 
-    // From flex writer
-    node.onModbusWriteDone = function (resp, msg) {
-      if (node.showStatusActivities) {
-        mbBasics.setNodeStatusTo('writing done', node)
-      }
-
-      node.warn(msg)
-      if (msg.enum) {
-        msg.payload = msg.enum[+msg.payload.value]
-      } else {
-        msg.payload = msg.payload.value
-      }
-
-      node.send(mbCore.buildMessage(node.bufferMessageList, msg.payload, resp, msg))
-      node.emit('modbusFlexWriteNodeDone')
-    }
-
-    node.errorProtocolMsg = function (err, msg) {
-      if (node.showErrors) {
-        mbBasics.logMsgError(node, err, msg)
-      }
-    }
-
-    node.onModbusWriteError = function (err, msg) {
-      node.internalDebugLog(err.message)
-      const origMsg = mbCore.getOriginalMessage(node.bufferMessageList, msg)
-      node.errorProtocolMsg(err, origMsg)
-      mbBasics.sendEmptyMsgOnFail(node, err, msg)
-      mbBasics.setModbusError(node, modbusClient, err, origMsg)
-      node.emit('modbusFlexWriteNodeError')
-    }
-
     node.on('input', function (msg) {
+      // Allow dynamic override of unitid and attribute via message properties
+      const unitid = msg.unitid || config.unitid
+      const attribute = msg.attribute || config.attribute
+
+      if (!attribute || !attribute.value) {
+        node.error('No attribute specified in config or message', msg)
+        return
+      }
+
+      // Prepare message payload based on config attribute
       if (config.write) {
         msg.payload = {
           value: msg.payload,
           fc: 6
         }
 
-        if (typeof (msg.payload.value) === 'string') {
-          const enums = {}
-          config.attribute.value.split(':')[4].split(';').forEach((e) => {
-            const b = e.split('=')
-            enums[b[1]] = b[0]
-          })
-          msg.payload.value = enums[msg.payload.value]
+        // Handle string to enum conversion for write operations
+        if (typeof msg.payload.value === 'string') {
+          const enumString = attribute.value.split(':')[4]
+          const reverseEnum = dataTransformer.parseReverseEnumString(enumString)
+          if (reverseEnum) {
+            msg.payload.value = reverseEnum[msg.payload.value]
+          }
         }
       } else {
         msg.payload = {
           fc: 3
         }
       }
-      msg.payload.address = parseInt(config.attribute.value.split(':')[0])
-      msg.payload.unitid = config.unitid
-      msg.payload.quantity = parseInt(config.attribute.value.split(':')[2])
-      msg.scalefactor = config.attribute.value.split(':')[3]
-      msg.type = config.attribute.value.split(':')[1].replace(/\[[0-9]\]/, '')
-      if (config.attribute.value.split(':')[4].includes('=')) {
-        msg.enum = config.attribute.value.split(':')[4].split(';').reduce((acc, curr) => {
-          const split = curr.split('=')
-          acc[split[0]] = split[1]
-          return acc
-        }, {})
+
+      // Parse attribute value and populate message
+      const attributeValue = attribute.value.split(':')
+      msg.payload.address = parseInt(attributeValue[0])
+      msg.payload.unitid = unitid
+      msg.payload.quantity = parseInt(attributeValue[2])
+      msg.scalefactor = attributeValue[3]
+      msg.type = attributeValue[1].replace(/\[[0-9]\]/, '')
+
+      // Parse enum string if present
+      const enumString = attributeValue[4]
+      if (enumString && enumString.includes('=')) {
+        msg.enum = dataTransformer.parseEnumString(enumString)
       }
 
       if (mbBasics.invalidPayloadIn(msg)) {
         verboseWarn('Invalid message on input.')
+        return
+      }
+
+      if (!modbusClient.client) {
         return
       }
 
@@ -263,7 +256,7 @@ module.exports = function (RED) {
         return
       }
 
-      const origMsgInput = Object.assign({}, msg) // keep it origin
+      const origMsgInput = Object.assign({}, msg)
       try {
         const inputMsg = node.prepareMsg(origMsgInput)
         if (node.isValidModbusMsg(inputMsg)) {
@@ -295,63 +288,43 @@ module.exports = function (RED) {
       modbusClient.deregisterForModbus(node.id, done)
     })
   }
+
   RED.nodes.registerType('victron-modbus', VictronModbusNode)
 
-  RED.httpNode.get('/victron/attributes', RED.auth.needsPermission('victron-modbus.read'), (req, res) => {
-    const attributes = []
-    const possibleFilesPaths = [
-      '/opt/victronenergy/dbus-modbustcp/attributes.csv',
-      RED.settings.userDir + '/attributes.csv'
-    ]
-    let attributesFile = null
+  // HTTP endpoint for attributes - refactored to use csv-parser module
+  RED.httpNode.get('/victron/attributes', RED.auth.needsPermission('victron-modbus.read'), async (req, res) => {
+    try {
+      // Get custom path from query parameter (if provided)
+      const customPath = req.query.path || null
 
-    for (const filePath of possibleFilesPaths) {
-      if (fs.existsSync(filePath)) {
-        attributesFile = filePath
-        break
-      }
-    }
+      // Find the attributes file using the new csv-parser module
+      const attributesFile = csvParser.findAttributesFile(RED.settings.userDir, customPath)
 
-    if (!attributesFile) {
-      console.log('no attributes file found')
-      return
-    }
+      if (!attributesFile) {
+        console.log('No attributes file found. Searched locations:')
+        console.log('  - Custom path:', customPath || '(not specified)')
+        console.log('  - Environment variable VICTRON_ATTRIBUTES_PATH:', process.env.VICTRON_ATTRIBUTES_PATH || '(not set)')
+        console.log('  - /opt/victronenergy/dbus-modbustcp/attributes.csv')
+        console.log('  - ' + RED.settings.userDir + '/attributes.csv')
+        console.log('  - /config/node-red/attributes.csv (Home Assistant)')
+        console.log('  - /share/node-red/attributes.csv (Home Assistant)')
 
-    const handleError = (error) => {
-      console.error('Error:', error)
-    }
-
-    const handleRow = (row) => {
-      try {
-        let q = 1
-        if (row[5] && row[5].match(/string/)) {
-          q = parseInt(row[5].replace(/\D+/g, '')) || 1
-        }
-        if (row[5] && row[5].match(/int32/)) {
-          q = 2
-        }
-        const t = row[5] ? row[5].replace(/\[[0-9]\]/, '') : ''
-        attributes.push({
-          label: row[0] + ':' + row[1],
-          value: row[4] + ':' + t + ':' + q + ':' + row[6] + ':' + row[3] + ':' + row[7]
+        return res.status(404).json({
+          error: 'Attributes file not found',
+          hint: 'Place attributes.csv in Node-RED user directory or set custom path in node configuration'
         })
-      } catch (error) {
-        handleError(error)
       }
-    }
 
-    const handleEnd = () => {
-      attributes.sort((a, b) => a.label.localeCompare(b.label))
+      console.log('Loading attributes from:', attributesFile)
+
+      // Parse attributes using the new csv-parser module
+      const attributes = await csvParser.parseAttributesFile(attributesFile)
+
       res.setHeader('Content-Type', 'application/json')
       res.send(attributes)
+    } catch (error) {
+      console.error('Error loading attributes:', error)
+      res.status(500).json({ error: 'Failed to load attributes', details: error.message })
     }
-
-    const fileStream = fs.createReadStream(attributesFile)
-    fileStream.on('error', handleError)
-
-    fileStream
-      .pipe(parse({ delimiter: ',', from_line: 1, relax_column_count: true }))
-      .on('data', handleRow)
-      .on('end', handleEnd)
   })
 }
